@@ -31,7 +31,7 @@ class BasicTest(TestCase):
     def test_upload(self):
         user = User.objects.create_user('captain', password='serenity')
         token_user = Token.objects.create(user=user)
-        file_path = '/home/robertahunt/upload_server/img.jpg'
+        file_path = 'img.jpg'
         fn = os.path.basename(file_path)
         specify_user = 'TheCaptain'
         timestamp = str(datetime.utcnow())
@@ -66,7 +66,7 @@ class BasicTest(TestCase):
         #test what happens if hmac incorrect.
         user = User.objects.create_user('captain', password='serenity')
         token_user = Token.objects.create(user=user)
-        file_path = '/home/robertahunt/upload_server/img.jpg'
+        file_path = 'img.jpg'
         fn = os.path.basename(file_path)
         specify_user = 'TheCaptain'
         timestamp = str(datetime.utcnow())
