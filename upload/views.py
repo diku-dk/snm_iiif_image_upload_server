@@ -78,7 +78,7 @@ class FileUploadView(APIView):
         return Response(uuid+'.tiff')
     
 def convert_img_to_pyramid_tiff(cache_fp,out_fp):
-    params = ['convert','-format','ptif',cache_fp,out_fp]
+    params = ['convert',cache_fp,'-define','tiff:tile-geometry=128x128','ptif:'+out_fp]
     output = subprocess.check_output(params)
     if len(output):
         logger.warning('Problem with image conversion to ptif. Deleting files')
