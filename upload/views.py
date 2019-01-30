@@ -47,8 +47,10 @@ class FileUploadView(APIView):
         sent_hmac_sig = request.data.get('hmac_sig','').encode('latin-1')
         
         _, fmt = split_filename(orig_fn)
-        if fmt not in settings.IMAGE_FORMATS:
+        if fmt.lower() not in settings.IMAGE_FORMATS:
             return BadImageFormatResponse(fmt)
+        
+        
         
         uuid = make_uuid()
         fn = uuid + '.' + fmt
@@ -62,8 +64,8 @@ class FileUploadView(APIView):
             return OldTimestampResponse(timestamp)
         
         md5 = get_md5(img)
-        to_hash = bytes(orig_fn + '\n' + specify_user + '\n' + timestamp + '\n' + md5).encode('latin-1')#python3:, 'latin-1'
-        received_hmac_sig = hmac.new(bytes(SECRET_KEY), to_hash, hashlib.sha512).hexdigest().encode('latin-1')#python3:, 'latin-1'
+        to_hash = bytes(orig_fn + '\n' + specify_user + '\n' + timestamp + '\n' + md5).encode('latin-1')
+        received_hmac_sig = hmac.new(bytes(SECRET_KEY), to_hash, hashlib.sha512).hexdigest().encode('latin-1')
         
         if not hmac_matches(sent_hmac_sig, received_hmac_sig):
             logger.warning("FAILED: Attempt to upload failed on bad hmac. uuid: %s"%uuid)
@@ -91,14 +93,9 @@ def write_img(fp, img):
     with open(fp, 'wb+') as destination:
         for chunk in img.chunks():
             destination.write(chunk)
-
-    
+            
 def get_md5(img):
     hash_md5 = hashlib.md5()
-    #for chunk in iter(lambda: img.read(4096), b""):
-    #    hash_md5.update(chunk)
-    #    print(chunk[:20])
-    #return hash_md5.hexdigest()
     return hashlib.md5(img.read()).hexdigest()
     
 def hmac_matches(hmac_1, hmac_2):

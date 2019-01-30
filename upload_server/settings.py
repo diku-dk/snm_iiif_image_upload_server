@@ -24,7 +24,7 @@ SECRET_KEY = ''
 
 IMAGE_FOLDER = '/usr/local/share/iip/images'
 CACHE_FOLDER = '/usr/local/share/iip/cache'
-IMAGE_FORMATS = ['jpg','png','tif','tiff']
+IMAGE_FORMATS = ['jpg','png','tif','tiff','arw','cr2']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

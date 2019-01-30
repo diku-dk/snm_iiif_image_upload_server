@@ -94,7 +94,42 @@ class BasicTest(TestCase):
         r = client.post('/imageUpload/', data=files)
         self.assertEqual(r.status_code, 222, r.data)
 
+    def test_raw_upload(self):
+        user = User.objects.create_user('captain', password='serenity')
+        token_user = Token.objects.create(user=user)
+        file_path = 'raw.CR2'
+        fn = os.path.basename(file_path)
+        specify_user = 'TheCaptain'
+        timestamp = str(datetime.utcnow())
+        img = open(file_path, 'rb')
+        md5 = get_md5(img)
+        img = open(file_path, 'rb')
         
+        to_hash = bytes(fn + '\n' + specify_user + '\n' + timestamp + '\n' + md5).encode('latin-1')#python3:, 'latin-1'
+        hmac_sig = hmac.new(bytes(SECRET_KEY), to_hash, hashlib.sha512).hexdigest().encode('latin-1')#python3:, 'latin-1'
+        files = {'file': img,
+                 'fn':fn, 
+                 'specify_user':specify_user,
+                 'timestamp':timestamp,
+                 'md5_sum': md5,
+                 'hmac_sig': hmac_sig,
+                }
+        
+       
+        token = Token.objects.get(user__username='captain')
+        
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        
+        r = client.post('/imageUpload/', data=files)
+        self.assertEqual(r.status_code, 200, r.data)
+        new_fn = r.content.decode('utf-8').split('"')[1]
+        new_fp = os.path.join(settings.IMAGE_FOLDER,new_fn)
+        print(new_fn)
+        #os.remove(new_fp)
+        
+def split_filename(fn):
+    return '.'.join(fn.split('.')[:-1]), fn.split('.')[-1]
         
 def get_md5(img):
     #hash_md5 = hashlib.md5()
