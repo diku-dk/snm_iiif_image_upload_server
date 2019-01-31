@@ -19,9 +19,10 @@ SECRET_KEY = settings.SECRET_KEY
 # Create your tests here.
 class BasicTest(TestCase):
     
-    def test_homepage_resolves(self):
-        found = resolve('/')
-        self.assertEqual(found.func, homepage)
+    #def test_homepage_resolves(self):
+    #    found = resolve('/')
+    #    self.assertEqual(found.func, homepage)
+    
     def test_image_folder_exists(self):
         self.assertEqual(os.path.exists(settings.IMAGE_FOLDER), True, 'Image folder specified in settings does not exist')
         
@@ -132,11 +133,6 @@ def split_filename(fn):
     return '.'.join(fn.split('.')[:-1]), fn.split('.')[-1]
         
 def get_md5(img):
-    #hash_md5 = hashlib.md5()
-    #for chunk in iter(lambda: img.read(4096), b""):
-    #    hash_md5.update(chunk)
-    #    print(chunk[:20])
-    #return hash_md5.hexdigest()
     return hashlib.md5(img.read()).hexdigest()
     
         

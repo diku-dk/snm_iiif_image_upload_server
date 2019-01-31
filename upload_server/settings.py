@@ -29,7 +29,7 @@ IMAGE_FORMATS = ['jpg','png','tif','tiff','arw','cr2']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [u'a00796.science.ku.dk']
 CORS_ORIGIN_ALLOW_ALL = True
 
 # Application definition

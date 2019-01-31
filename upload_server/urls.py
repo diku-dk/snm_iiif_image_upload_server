@@ -22,7 +22,6 @@ from upload.views import homepage
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^$', homepage),
-    url(r'^hello/$', HelloView.as_view(), name='hello'),
+    #url(r'^$', homepage),
     url(r'^imageUpload/$', FileUploadView.as_view())
 ]
