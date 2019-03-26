@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 SECRET_KEY = settings.SECRET_KEY
 
-
 # Create your views here.
 def homepage(request):
     return HttpResponse('Hello (again) World!');
@@ -50,8 +49,6 @@ class FileUploadView(APIView):
         if fmt.lower() not in settings.IMAGE_FORMATS:
             return BadImageFormatResponse(fmt)
         
-        
-        
         uuid = make_uuid()
         fn = uuid + '.' + fmt
         logger.info("Attempting upload, server user: %s, specify user: %s, ip: %s, original filename: %s, filename: %s"%(user,specify_user,ip,orig_fn,fn))
@@ -59,24 +56,23 @@ class FileUploadView(APIView):
         img = request.FILES['file']
         cache_fp = os.path.join(settings.CACHE_FOLDER, fn)
 
-
         if is_old_timestamp(timestamp):
             logger.warning("FAILED: Attempt to upload with old timestamp, or without timestamp. uuid: %s"%uuid)
             return OldTimestampResponse(timestamp)
         
         md5 = get_md5(img)
-	img = request.FILES['file']
+        img = request.FILES['file']
         to_hash = bytes(orig_fn + '\n' + specify_user + '\n' + timestamp + '\n' + md5).encode('latin-1')
         received_hmac_sig = hmac.new(bytes(SECRET_KEY).encode('latin-1'), to_hash, hashlib.sha512).hexdigest().encode('latin-1')
-	logger.info('Extras: md5: %s HMAC1: %s HMAC2: %s'%(md5,sent_hmac_sig, received_hmac_sig))
-
-	        
+        logger.info('Extras: md5: %s HMAC1: %s HMAC2: %s'%(md5,sent_hmac_sig, received_hmac_sig))
+        
         if not hmac_matches(sent_hmac_sig, received_hmac_sig):
             logger.warning("FAILED: Attempt to upload failed on bad hmac. uuid: %s"%uuid)
             return FileUploadFailureResponse()
         
         write_img(cache_fp, img)
-        image_fp = os.path.join(settings.IMAGE_FOLDER, uuid + '.tiff')
+        folder = get_current_folder(settings.IMAGE_FOLDER)
+        image_fp = os.path.join(folder, uuid + '.tiff')
         convert_img_to_pyramid_tiff(cache_fp, image_fp)
         
         logger.info("Upload Complete. uuid: %s"%uuid)
@@ -136,6 +132,7 @@ def make_uuid():
     while os.path.exists(fp):
         uuid = str(uuid4())
         fn = uuid + '.tiff'
+        fp = os.path.join(settings.IMAGE_FOLDER,fn)
     return uuid
 
 def make_filename(fmt):
@@ -145,3 +142,60 @@ def make_filename(fmt):
         fn = str(uuid4()) + '.' + fmt
         fp = os.path.join(settings.IMAGE_FOLDER,fn)
     return fn
+
+def get_current_level(root):
+    level = 0
+    found_current_level = False
+    while found_current_level == False:
+        folder_glob = root
+        for i in range(level):
+            folder_glob = os.path.join(folder_glob,'*/')
+        child_folders = glob(folder_glob)
+        if (level == 0) & (len(child_folders) == 0):
+            return level, folder_glob
+
+        elif len(child_folders) < max_n**level:
+            found_current_level = True
+        else:
+            level += 1
+    return level, folder_glob
+
+def get_current_folder(root_path):
+    N_DIGITS_PER_FOLDER = int(math.ceil(np.log10(settings.MAX_FOLDERS_PER_FOLDER)))
+    #get current level and folder glob
+    level, folder_glob = get_current_level(root_path)
+    
+    #get latest folder on level
+    
+    folders = glob(folder_glob)
+    if len(folders) == 0:
+        folder_str = str(0).rjust(N_DIGITS_PER_FOLDER, '0')
+        folder = folder_glob.replace('*',folder_str)
+        os.mkdir(folder)
+        folders = glob(folder_glob)
+        
+    latest_folder = sorted(folders)[-1]
+    #check if folder is full
+    latest_files = glob(os.path.join(latest_folder,'*.*'))
+    
+    if len(latest_files) < max_n:
+        #if current folder isn't full, we can add the file there
+        folder_path = latest_folder
+    else:
+        #get current folder number 
+        parent_folder = '/'.join(os.path.normpath(latest_folder).split('/')[:-1])
+        last_folder_num = int(os.path.normpath(latest_folder).split('/')[-1])
+        if last_folder_num < max_n - 1:
+            #if there is still room for a new folder in the directory, 
+            folder_num = last_folder_num + 1
+            folder_str = str(folder_num).rjust(N_DIGITS_PER_FOLDER, '0')
+            folder_path = os.path.join(parent_folder,folder_str)
+            os.mkdir(folder_path)
+        else:
+            #need to make new level
+            folder_num = 0
+            folder_str = str(folder_num).rjust(N_DIGITS_PER_FOLDER, '0')
+            folder_path = os.path.join(parent_folder,folder_str,folder_str)
+            os.mkdir(folder_path)
+            level += 1
+    return level, folder_path
