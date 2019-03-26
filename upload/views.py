@@ -11,7 +11,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.http import HttpResponse
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
@@ -35,7 +35,7 @@ def split_filename(fn):
     
     
 class FileUploadView(APIView):
-    parser_classes = (MultiPartParser, )
+    parser_classes = (MultiPartParser, FormParser)
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, format='jpg'):
@@ -55,18 +55,22 @@ class FileUploadView(APIView):
         uuid = make_uuid()
         fn = uuid + '.' + fmt
         logger.info("Attempting upload, server user: %s, specify user: %s, ip: %s, original filename: %s, filename: %s"%(user,specify_user,ip,orig_fn,fn))
-        
+
         img = request.FILES['file']
         cache_fp = os.path.join(settings.CACHE_FOLDER, fn)
+
 
         if is_old_timestamp(timestamp):
             logger.warning("FAILED: Attempt to upload with old timestamp, or without timestamp. uuid: %s"%uuid)
             return OldTimestampResponse(timestamp)
         
         md5 = get_md5(img)
+	img = request.FILES['file']
         to_hash = bytes(orig_fn + '\n' + specify_user + '\n' + timestamp + '\n' + md5).encode('latin-1')
-        received_hmac_sig = hmac.new(bytes(SECRET_KEY), to_hash, hashlib.sha512).hexdigest().encode('latin-1')
-        
+        received_hmac_sig = hmac.new(bytes(SECRET_KEY).encode('latin-1'), to_hash, hashlib.sha512).hexdigest().encode('latin-1')
+	logger.info('Extras: md5: %s HMAC1: %s HMAC2: %s'%(md5,sent_hmac_sig, received_hmac_sig))
+
+	        
         if not hmac_matches(sent_hmac_sig, received_hmac_sig):
             logger.warning("FAILED: Attempt to upload failed on bad hmac. uuid: %s"%uuid)
             return FileUploadFailureResponse()
